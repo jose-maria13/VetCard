@@ -7,13 +7,12 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import PetForm from '@/components/forms/PetForm'
 import { petService } from '@/services/petService'
 import { PetFormData } from '@/types'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import Sidebar from '@/components/dashboard/Sidebar'
+import DashboardHeader from '@/components/dashboard/DashboardHeader'
 
 export default function NewPetPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
 
@@ -22,8 +21,7 @@ export default function NewPetPage() {
 
     try {
       setIsLoading(true)
-      
-      // Crear la mascota
+
       const petData = {
         user_id: user.id,
         name: data.name,
@@ -32,23 +30,20 @@ export default function NewPetPage() {
         birth_date: data.birth_date || null,
         weight: data.weight ? Number(data.weight) : null,
         color: data.color || null,
-        microchip_number: null, // Campo removido del formulario
+        microchip_number: null,
       }
 
       const newPet = await petService.createPet(petData)
 
-      // Subir foto si existe
       if (data.photo) {
         try {
           const photoUrl = await petService.uploadPetPhoto(newPet.id, data.photo)
           await petService.updatePet(newPet.id, { photo_url: photoUrl })
         } catch (error) {
           console.error('Error al subir la foto:', error)
-          // No fallar si la foto no se puede subir
         }
       }
 
-      // Redirigir al dashboard
       router.push('/dashboard')
     } catch (error: any) {
       throw new Error(error.message || 'Error al crear la mascota')
@@ -63,34 +58,29 @@ export default function NewPetPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-card border-b border-border">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/dashboard">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Volver al Dashboard
-                  </Link>
-                </Button>
-                <div className="h-6 w-px bg-border" />
-                <h1 className="text-2xl font-bold text-foreground">Nueva Mascota</h1>
-              </div>
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen bg-gray-50 dark:bg-[#050a1f] flex">
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
-          <PetForm
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={isLoading}
-          />
-        </main>
+        <div className="flex-1 flex flex-col lg:ml-[270px] transition-all duration-300">
+          <DashboardHeader setSidebarOpen={setSidebarOpen} />
+
+          <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                Nueva Mascota
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400">
+                Completa la información de tu mascota
+              </p>
+            </div>
+
+            <PetForm
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              isLoading={isLoading}
+            />
+          </main>
+        </div>
       </div>
     </ProtectedRoute>
   )

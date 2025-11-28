@@ -1,60 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PetForm from '@/components/forms/PetForm'
 import { petService } from '@/services/petService'
-import { PetFormData, Pet } from '@/types'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { ArrowLeft, AlertTriangle } from 'lucide-react'
-import Link from 'next/link'
+import { PetFormData } from '@/types'
+import { AlertTriangle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import Sidebar from '@/components/dashboard/Sidebar'
+import DashboardHeader from '@/components/dashboard/DashboardHeader'
+import { usePet } from '@/hooks/usePet'
 
 export default function EditPetPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [pet, setPet] = useState<Pet | null>(null)
-  const [isLoadingPet, setIsLoadingPet] = useState(true)
-  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user } = useAuth()
   const router = useRouter()
   const params = useParams()
   const petId = params.id as string
 
-  useEffect(() => {
-    if (petId) {
-      loadPet()
-    }
-  }, [petId])
-
-  const loadPet = async () => {
-    try {
-      setIsLoadingPet(true)
-      setError('')
-      const petData = await petService.getPetById(petId)
-      
-      if (!petData) {
-        setError('Mascota no encontrada')
-        return
-      }
-      
-      setPet(petData)
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar la mascota')
-    } finally {
-      setIsLoadingPet(false)
-    }
-  }
+  const { pet, isLoading: isLoadingPet, error } = usePet(petId)
 
   const handleSubmit = async (data: PetFormData & { photo?: File }) => {
     if (!user || !pet) return
 
     try {
-      setIsLoading(true)
-      
-      // Actualizar la mascota
+      setIsSubmitting(true)
+
       const updateData = {
         name: data.name,
         species: data.species,
@@ -62,28 +38,24 @@ export default function EditPetPage() {
         birth_date: data.birth_date || null,
         weight: data.weight ? Number(data.weight) : null,
         color: data.color || null,
-        // microchip_number se mantiene como está en la base de datos
       }
 
       await petService.updatePet(pet.id, updateData)
 
-      // Subir nueva foto si existe
       if (data.photo) {
         try {
           const photoUrl = await petService.uploadPetPhoto(pet.id, data.photo)
           await petService.updatePet(pet.id, { photo_url: photoUrl })
         } catch (error) {
           console.error('Error al subir la foto:', error)
-          // No fallar si la foto no se puede subir
         }
       }
 
-      // Redirigir a la página de detalle de la mascota
       router.push(`/pet/${pet.id}`)
     } catch (error: any) {
       throw new Error(error.message || 'Error al actualizar la mascota')
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -94,10 +66,10 @@ export default function EditPetPage() {
   if (isLoadingPet) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#050a1f] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando información de la mascota...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400">Cargando información de la mascota...</p>
           </div>
         </div>
       </ProtectedRoute>
@@ -107,14 +79,14 @@ export default function EditPetPage() {
   if (error || !pet) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Card className="w-full max-w-md">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#050a1f] flex items-center justify-center">
+          <Card className="w-full max-w-md bg-white dark:bg-[#081028]">
             <CardContent className="pt-6 text-center">
-              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
+              <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                 {error || 'Mascota no encontrada'}
               </h2>
-              <Button asChild>
+              <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
                 <Link href="/dashboard">Volver al Dashboard</Link>
               </Button>
             </CardContent>
@@ -126,44 +98,39 @@ export default function EditPetPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-card border-b border-border">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/pet/${pet.id}`}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Volver a {pet.name}
-                  </Link>
-                </Button>
-                <div className="h-6 w-px bg-border" />
-                <h1 className="text-2xl font-bold text-foreground">Editar {pet.name}</h1>
-              </div>
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen bg-gray-50 dark:bg-[#050a1f] flex">
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-        {/* Main Content */}
-        <main className="container mx-auto px-4 py-8">
-          <PetForm
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={isLoading}
-            initialData={{
-              name: pet.name,
-              species: pet.species,
-              breed: pet.breed || '',
-              birth_date: pet.birth_date || '',
-              weight: pet.weight || '',
-              color: pet.color || '',
-              photo_url: pet.photo_url || '',
-            }}
-            isEdit={true}
-          />
-        </main>
+        <div className="flex-1 flex flex-col lg:ml-[270px] transition-all duration-300">
+          <DashboardHeader setSidebarOpen={setSidebarOpen} />
+
+          <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                Editar {pet.name}
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400">
+                Actualiza la información de tu mascota
+              </p>
+            </div>
+
+            <PetForm
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+              isLoading={isSubmitting}
+              initialData={{
+                name: pet.name,
+                species: pet.species,
+                breed: pet.breed || '',
+                birth_date: pet.birth_date || '',
+                weight: pet.weight || '',
+                color: pet.color || '',
+                photo_url: pet.photo_url || '',
+              }}
+              isEdit={true}
+            />
+          </main>
+        </div>
       </div>
     </ProtectedRoute>
   )

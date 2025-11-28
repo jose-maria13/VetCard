@@ -24,3 +24,8 @@ SELECT 'Tabla other_treatments eliminada exitosamente' as status;
 
 
 
+
+
+
+
+

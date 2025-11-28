@@ -1,4 +1,4 @@
-# 🔐 Configuración de Variables de Entorno
+# 🔐 Configuración de Variables de Entorno - VetHealth
 
 ## ⚠️ Problema: "Missing Supabase environment variables"
 

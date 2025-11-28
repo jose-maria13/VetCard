@@ -13,19 +13,19 @@ const sizeConfig = {
   xl: { width: 64, height: 64, textSize: 'text-3xl' }
 }
 
-export default function Logo({ 
-  size = 'md', 
-  showText = true, 
-  className = '' 
+export default function Logo({
+  size = 'md',
+  showText = true,
+  className = ''
 }: LogoProps) {
   const config = sizeConfig[size]
-  
+
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div className="relative">
         <Image
-          src="/logo vet card.png"
-          alt="VetCard Logo"
+          src="/logo-vethealth.png"
+          alt="VetHealth Logo"
           width={config.width}
           height={config.height}
           className="object-contain"
@@ -34,7 +34,7 @@ export default function Logo({
       </div>
       {showText && (
         <span className={`font-bold text-foreground ${config.textSize}`}>
-          VET CARD
+          VET HEALTH
         </span>
       )}
     </div>

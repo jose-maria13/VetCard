@@ -3,18 +3,19 @@
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { Heart, Shield, FileText, Smartphone, Users, Calendar } from 'lucide-react'
+import { Heart, Shield, FileText, Smartphone, Users, Calendar, CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Logo from '@/components/Logo'
 import PetCarousel from '@/components/PetCarousel'
+import FloatingPetButton from '@/components/FloatingPetButton'
+import { WobbleCard } from '@/components/ui/wobble-card'
 import { publicPetService, PublicPet } from '@/services/publicPetService'
 
-// --- Enhanced Animations ---
+// --- Animations ---
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -25,44 +26,26 @@ const fadeIn = {
   show: { opacity: 1, transition: { duration: 0.6 } },
 }
 
-// Nuevas animaciones para hovers
-const cardHover = {
-  scale: 1.05,
-  y: -8,
-}
-
 const buttonHover = {
   scale: 1.05,
-}
-
-const iconHover = {
-  scale: 1.2,
-  rotate: 5,
 }
 
 export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  
+
   // Estado para mascotas del carrusel
   const [publicPets, setPublicPets] = useState<PublicPet[]>([])
   const [petsLoading, setPetsLoading] = useState(true)
 
   useEffect(() => {
     const loadPets = async () => {
-      console.log('🔄 Iniciando carga de mascotas para carrusel...')
       try {
-        // Cargar mascotas reales de la base de datos
         const realPets = await publicPetService.getRandomPets(8)
-        console.log('📊 Mascotas obtenidas de la base de datos:', realPets)
-        
         if (realPets.length > 0) {
           setPublicPets(realPets)
-          console.log('✅ Carrusel cargado con mascotas reales:', realPets.length)
-          console.log('🐾 Mascotas:', realPets.map(p => `${p.name} (${p.species})`).join(', '))
         } else {
-          console.log('⚠️ No se encontraron mascotas reales, usando datos de ejemplo')
-          // Fallback con datos mock si no hay mascotas reales
+          // Fallback mock data
           const mockPets = [
             { id: '1', name: 'Max', species: 'dog', photo_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-01' },
             { id: '2', name: 'Luna', species: 'cat', photo_url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-02' },
@@ -72,421 +55,162 @@ export default function HomePage() {
             { id: '6', name: 'Mia', species: 'cat', photo_url: 'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-06' },
           ]
           setPublicPets(mockPets)
-          console.log('⚠️ Usando datos de ejemplo para el carrusel')
         }
       } catch (error) {
-        console.error('❌ Error cargando mascotas:', error)
-        console.error('❌ Detalles del error:', JSON.stringify(error, null, 2))
-        // Fallback con datos mock en caso de error
-        const mockPets = [
-          { id: '1', name: 'Max', species: 'dog', photo_url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-01' },
-          { id: '2', name: 'Luna', species: 'cat', photo_url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-02' },
-          { id: '3', name: 'Bella', species: 'dog', photo_url: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-03' },
-          { id: '4', name: 'Simba', species: 'cat', photo_url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=150&h=150&fit=crop&crop=face', created_at: '2024-01-04' },
-        ]
-        setPublicPets(mockPets)
-        console.log('⚠️ Error cargando mascotas, usando datos de ejemplo')
+        console.error('Error loading pets', error)
       } finally {
         setPetsLoading(false)
       }
     }
 
+    // Cargar mascotas al montar el componente
     loadPets()
+
+    // Recargar mascotas cuando la página se vuelve visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadPets()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <motion.div 
-          className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary" />
       </div>
     )
   }
 
-  // =========================================================
-  // LOGGED IN VIEW
-  // =========================================================
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        {/* ---------- Header ---------- */}
-        <motion.header 
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border"
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            >
-              <Logo size="lg" />
-            </motion.div>
-            <div className="flex items-center gap-4">
-              <ThemeToggle />
-              <motion.div whileHover={buttonHover} whileTap={{ scale: 0.95 }}>
-                <Button asChild>
-                  <Link href="/dashboard">Ir al Dashboard</Link>
-                </Button>
-              </motion.div>
-            </div>
-          </div>
-        </motion.header>
+  return (
+    <div className="min-h-screen bg-gradient-to-tl from-purple-50 via-sky-50 to-purple-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 overflow-x-hidden">
 
-        {/* ---------- Welcome Section ---------- */}
-        <section className="py-20 px-4 text-center overflow-hidden relative">
-          {/* Fondo animado con partículas */}
-          <div className="absolute inset-0 overflow-hidden">
-            {/* Partículas flotantes mejoradas */}
-            {[...Array(15)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute rounded-full bg-primary/20 dark:bg-primary/30 shadow-sm"
-                style={{
-                  width: Math.random() * 8 + 3,
-                  height: Math.random() * 8 + 3,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -50, 0],
-                  x: [0, Math.random() * 40 - 20, 0],
-                  opacity: [0.4, 1, 0.4],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: Math.random() * 8 + 6,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: Math.random() * 3,
-                }}
-              />
-            ))}
-            
-            {/* Ondas de fondo */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 dark:from-primary/10 dark:to-secondary/10"
-              animate={{
-                background: [
-                  "linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05))",
-                  "linear-gradient(135deg, rgba(147, 51, 234, 0.05), rgba(59, 130, 246, 0.05))",
-                  "linear-gradient(225deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05))",
-                  "linear-gradient(315deg, rgba(147, 51, 234, 0.05), rgba(59, 130, 246, 0.05))",
-                ],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
+      {/* ---------- Header ---------- */}
+      <header className="fixed top-0 w-full z-50 bg-white/10 dark:bg-black/10 backdrop-blur-md border-b border-white/20 dark:border-white/5">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size="md" />
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            {user ? (
+              <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-lg shadow-indigo-500/30">
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <div className="flex gap-3">
+                <Button variant="ghost" asChild className="hidden sm:inline-flex">
+                  <Link href="/auth/login">Iniciar Sesión</Link>
+                </Button>
+                <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-lg shadow-indigo-500/30">
+                  <Link href="/auth/register">Comenzar Gratis</Link>
+                </Button>
+              </div>
+            )}
           </div>
-          
-          {/* Contenido principal */}
-          <div className="container mx-auto relative z-10">
+        </div>
+      </header>
+
+      {/* ---------- Hero Section ---------- */}
+      <div className="pt-32 pb-20 px-4 sm:px-10">
+        <div className="max-w-screen-xl mx-auto">
+          <div className="grid lg:grid-cols-2 items-center gap-x-12 gap-y-16">
+
+            {/* Text Content */}
             <motion.div
               initial="hidden"
               animate="show"
               variants={fadeUp}
-              className="flex flex-col items-center"
             >
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 2 }}
-                transition={{ type: "spring", stiffness: 300, damping: 15 }}
-              >
-                <Badge variant="secondary" className="mb-4">
-                  🐾 ¡Bienvenido de vuelta!
-                </Badge>
-              </motion.div>
+              <div className="max-w-3xl max-lg:mx-auto max-lg:text-center">
+                <p className="mb-4 font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide flex items-center max-lg:justify-center">
+                  <span className="w-8 h-[2px] bg-indigo-600 dark:bg-indigo-400 mr-2"></span>
+                  Cuidado Inteligente para tu Mascota
+                </p>
+                <h1 className="text-slate-900 dark:text-white md:text-6xl text-4xl font-extrabold !leading-tight mb-6">
+                  Tu Mascota, Su Salud, <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
+                    Todo en un solo lugar
+                  </span>
+                </h1>
+                <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed mb-8">
+                  VetHealth es la plataforma integral para gestionar el historial médico de tus mejores amigos.
+                  Vacunas, desparasitaciones y consultas, todo organizado y accesible desde cualquier lugar.
+                </p>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
-                Hola, <motion.span 
-                  className="text-primary"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  {user.email}
-                </motion.span>
-              </h1>
+                <div className="flex flex-wrap gap-4 max-lg:justify-center">
+                  <motion.div whileHover={buttonHover} whileTap={{ scale: 0.95 }}>
+                    <Button size="lg" asChild className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-xl shadow-indigo-500/30 rounded-xl">
+                      <Link href={user ? "/dashboard" : "/auth/register"}>
+                        {user ? "Ir al Dashboard" : "Comenzar Gratis"}
+                      </Link>
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={buttonHover} whileTap={{ scale: 0.95 }}>
+                    <Button size="lg" variant="outline" asChild className="h-14 px-8 text-lg border-2 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl bg-transparent">
+                      <Link href="#features">Descubrir Más</Link>
+                    </Button>
+                  </motion.div>
+                </div>
 
-              <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-                Continúa gestionando el carnet de vacunación digital de tus mascotas.
-                Todo está listo para que sigas cuidando a tus mejores amigos.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.div 
-                  whileHover={buttonHover} 
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <Button size="lg" asChild>
-                    <Link href="/dashboard">Ir al Dashboard</Link>
-                  </Button>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={buttonHover} 
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <Button size="lg" variant="outline" asChild>
-                    <Link href="/pet/new">Agregar Mascota</Link>
-                  </Button>
-                </motion.div>
+                {/* Stats */}
+                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-6 max-lg:text-center">
+                    <div className="flex flex-col">
+                      <h5 className="text-indigo-700 dark:text-indigo-400 font-bold text-3xl mb-1">100%</h5>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Seguro</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <h5 className="text-indigo-700 dark:text-indigo-400 font-bold text-3xl mb-1">+100</h5>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Mascotas</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <h5 className="text-indigo-700 dark:text-indigo-400 font-bold text-3xl mb-1">24/7</h5>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Acceso</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
-          </div>
-        </section>
 
-        {/* ---------- Quick Actions Section ---------- */}
-        <section className="py-20 px-4 bg-card">
-          <div className="container mx-auto">
+            {/* Image Masonry */}
             <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              className="text-center mb-16"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="columns-2 space-y-4 gap-4"
             >
-              <h2 className="text-4xl font-bold mb-4">Tu centro de control para mascotas</h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Accede rápidamente a todas las funciones de VetCard desde aquí.
-              </p>
+              <div className="break-inside-avoid space-y-4">
+                <div className="relative group overflow-hidden rounded-2xl shadow-lg">
+                  <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&q=80" alt="Perro feliz"
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="relative group overflow-hidden rounded-2xl shadow-lg">
+                  <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&q=80" alt="Gato curioso"
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                </div>
+              </div>
+              <div className="break-inside-avoid space-y-4 pt-8">
+                <div className="relative group overflow-hidden rounded-2xl shadow-lg">
+                  <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=600&q=80" alt="Perro y dueño"
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                </div>
+              </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { icon: Heart, color: 'blue', title: 'Agregar Mascota', desc: 'Registra una nueva mascota.', path: '/pet/new' },
-                { icon: FileText, color: 'green', title: 'Registrar Vacuna', desc: 'Añade un nuevo registro.', path: '/vaccine/new' },
-                { icon: Shield, color: 'purple', title: 'Desparasitación', desc: 'Registra tratamientos.', path: '/deworming/new' },
-                { icon: Calendar, color: 'orange', title: 'Nueva Consulta', desc: 'Registra una consulta médica.', path: '/consultation/new' },
-              ].map(({ icon: Icon, color, title, desc, path }, i) => (
-                <motion.div
-                  key={title}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true }}
-                  variants={{
-                    hidden: { opacity: 0, y: 30 },
-                    show: { opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } },
-                  }}
-                >
-                  <motion.div
-                    whileHover={cardHover}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <Card
-                      onClick={() => router.push(path)}
-                      className="border-0 shadow-lg hover:shadow-2xl transition-all cursor-pointer group"
-                    >
-                      <CardHeader>
-                        <motion.div 
-                          className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-${color}-200 transition-colors`}
-                          whileHover={iconHover}
-                        >
-                          <Icon className={`h-6 w-6 text-${color}-600`} />
-                        </motion.div>
-                        <CardTitle className="group-hover:text-primary transition-colors">{title}</CardTitle>
-                        <CardDescription className="group-hover:text-foreground/80 transition-colors">{desc}</CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </motion.div>
-                </motion.div>
-              ))}
-            </div>
           </div>
-        </section>
-
-        {/* ---------- Footer ---------- */}
-        <footer className="bg-muted py-12 px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={fadeIn}
-            className="container mx-auto text-center"
-          >
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 2 }}
-              transition={{ type: "spring", stiffness: 300, damping: 15 }}
-              className="flex justify-center mb-4"
-            >
-              <Logo size="md" />
-            </motion.div>
-            <p className="text-muted-foreground mb-4">
-              Cuidando a tus mascotas, un registro a la vez.
-            </p>
-            <p className="text-sm text-muted-foreground/60">
-  © {new Date().getFullYear()} VetCard. Todos los derechos reservados.  
-  Desarrollado por{' '}
-  <a
-    href="https://www.linkedin.com/in/jose-maria-atonur-94949324b/"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-primary font-medium hover:underline hover:text-primary/80 transition-colors"
-  >
-    Jose Maria Atonur
-  </a>
-  .
-</p>
-
-          </motion.div>
-        </footer>
+        </div>
       </div>
-    )
-  }
 
-  // =========================================================
-  // GUEST VIEW
-  // =========================================================
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* ---------- Header ---------- */}
-      <motion.header 
-        className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-border"
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          >
-            <Logo size="lg" />
-          </motion.div>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <motion.div whileHover={buttonHover} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" asChild>
-              <Link href="/auth/login">Iniciar Sesión</Link>
-            </Button>
-            </motion.div>
-            <motion.div whileHover={buttonHover} whileTap={{ scale: 0.95 }}>
-            <Button asChild>
-              <Link href="/auth/register">Registrarse</Link>
-            </Button>
-            </motion.div>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* ---------- Hero Section ---------- */}
-      <section className="py-20 px-4 text-center overflow-hidden relative">
-        {/* Fondo animado con partículas */}
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Partículas flotantes mejoradas */}
-          {[...Array(25)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-primary/20 dark:bg-primary/30 shadow-sm"
-              style={{
-                width: Math.random() * 8 + 3,
-                height: Math.random() * 8 + 3,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -50, 0],
-                x: [0, Math.random() * 40 - 20, 0],
-                opacity: [0.4, 1, 0.4],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: Math.random() * 8 + 6,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 3,
-              }}
-            />
-          ))}
-          
-          {/* Ondas de fondo */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 dark:from-primary/10 dark:to-secondary/10"
-            animate={{
-              background: [
-                "linear-gradient(45deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05))",
-                "linear-gradient(135deg, rgba(147, 51, 234, 0.05), rgba(59, 130, 246, 0.05))",
-                "linear-gradient(225deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05))",
-                "linear-gradient(315deg, rgba(147, 51, 234, 0.05), rgba(59, 130, 246, 0.05))",
-              ],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        </div>
-        
-        {/* Contenido principal */}
-        <motion.div
-          className="container mx-auto relative z-10"
-          initial="hidden"
-          animate="show"
-          variants={fadeUp}
-        >
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15 }}
-          >
-          <Badge variant="secondary" className="mb-4">
-            🐾 Carnet Digital para Mascotas
-          </Badge>
-          </motion.div>
-          
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
-            Cuida a tu mascota con <motion.span 
-              className="text-primary"
-              whileHover={{ scale: 1.1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              VetCard
-            </motion.span>
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Gestiona el carnet de vacunación digital de tus mascotas de forma fácil, 
-            segura y siempre disponible. Nunca más pierdas el control de la salud de tu mejor amigo.
-          </p>
-
-          <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-            initial="hidden"
-            animate="show"
-            variants={fadeIn}
-          >
-            <motion.div 
-              whileHover={buttonHover} 
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            >
-            <Button size="lg" asChild>
-              <Link href="/auth/register">Comenzar Gratis</Link>
-            </Button>
-            </motion.div>
-            <motion.div 
-              whileHover={buttonHover} 
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            >
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#features">Conocer Más</Link>
-            </Button>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ---------- Pet Carousel Section ---------- */}
-      <section className="py-16 px-4 bg-gradient-to-r from-primary/5 to-secondary/5">
+      {/* ---------- Carousel Section ---------- */}
+      <section className="py-16 px-4 bg-white/50 dark:bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto">
           <motion.div
             initial="hidden"
@@ -495,37 +219,26 @@ export default function HomePage() {
             variants={fadeUp}
             className="text-center mb-12"
           >
-            <Badge variant="secondary" className="mb-4">
-              🐾 Mascotas Registradas
+            <Badge variant="secondary" className="mb-4 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-none px-4 py-1">
+              Comunidad VetHealth
             </Badge>
-            <h2 className="text-3xl font-bold mb-4">
-              Conoce a algunas de nuestras mascotas
+            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">
+              Mascotas que ya están protegidas
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Miles de mascotas ya confían en VetCard para mantener su salud al día
-            </p>
           </motion.div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={fadeIn}
-          >
-            {petsLoading ? (
-              <div className="flex justify-center items-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-                <span className="ml-3 text-muted-foreground">Cargando mascotas...</span>
-          </div>
-            ) : (
-              <PetCarousel pets={publicPets} />
-            )}
-          </motion.div>
+          {petsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+            </div>
+          ) : (
+            <PetCarousel pets={publicPets} />
+          )}
         </div>
       </section>
 
       {/* ---------- Features Section ---------- */}
-      <section id="features" className="py-20 px-4 bg-card">
+      <section id="features" className="py-20 px-4">
         <div className="container mx-auto">
           <motion.div
             initial="hidden"
@@ -534,117 +247,106 @@ export default function HomePage() {
             variants={fadeUp}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4">Todo lo que necesitas para cuidar a tu mascota</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Una plataforma completa diseñada específicamente para el cuidado y seguimiento médico de tus mascotas.
+            <h2 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Todo lo que necesitas</h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              Herramientas profesionales diseñadas para simplificar el cuidado de tu mascota.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: FileText, color: 'blue', title: 'Registro Completo', desc: 'Registra vacunas, desparasitaciones y consultas médicas.' },
-              { icon: Calendar, color: 'green', title: 'Recordatorios Inteligentes', desc: 'Recibe alertas sobre próximas vacunas y tratamientos.' },
-              { icon: Shield, color: 'purple', title: 'Seguro y Privado', desc: 'Protección de datos con encriptación de nivel bancario.' },
-              { icon: Smartphone, color: 'orange', title: 'Acceso Móvil', desc: 'Consulta la salud de tu mascota desde cualquier lugar.' },
-              { icon: FileText, color: 'red', title: 'PDF Exportable', desc: 'Descarga el carnet en PDF para imprimir o compartir.' },
-              { icon: Users, color: 'indigo', title: 'Múltiples Mascotas', desc: 'Gestiona todas tus mascotas desde una sola cuenta.' },
-            ].map(({ icon: Icon, color, title, desc }, i) => (
-              <motion.div
-                key={title}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                variants={{
-                  hidden: { opacity: 0, y: 30 },
-                  show: { opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } },
-                }}
-              >
-                <motion.div
-                  whileHover={cardHover}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  <Card className="border-0 shadow-lg hover:shadow-2xl transition-all transform cursor-pointer group">
-              <CardHeader>
-                      <motion.div 
-                        className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-${color}-200 transition-colors`}
-                        whileHover={iconHover}
-                      >
-                        <Icon className={`h-6 w-6 text-${color}-600`} />
-                      </motion.div>
-                      <CardTitle className="group-hover:text-primary transition-colors">{title}</CardTitle>
-                      <CardDescription className="group-hover:text-foreground/80 transition-colors">{desc}</CardDescription>
-              </CardHeader>
-            </Card>
-                </motion.div>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
+            <WobbleCard
+              containerClassName="col-span-1 min-h-[300px] bg-indigo-600 cursor-pointer"
+              className="p-6"
+            >
+              <div className="h-full flex flex-col justify-between">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Historial Médico</h2>
+                  <p className="text-indigo-100">Registro completo de vacunas y tratamientos.</p>
+                </div>
+              </div>
+            </WobbleCard>
+
+            <WobbleCard
+              containerClassName="col-span-1 min-h-[300px] bg-purple-600 cursor-pointer"
+              className="p-6"
+            >
+              <div className="h-full flex flex-col justify-between">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
+                  <Calendar className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Recordatorios</h2>
+                  <p className="text-purple-100">Alertas automáticas para próximas dosis.</p>
+                </div>
+              </div>
+            </WobbleCard>
+
+            <WobbleCard
+              containerClassName="col-span-1 min-h-[300px] bg-pink-600 cursor-pointer"
+              className="p-6"
+            >
+              <div className="h-full flex flex-col justify-between">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">Seguridad Total</h2>
+                  <p className="text-pink-100">Tus datos protegidos y siempre disponibles.</p>
+                </div>
+              </div>
+            </WobbleCard>
           </div>
         </div>
       </section>
 
       {/* ---------- CTA Section ---------- */}
-      <motion.section
-        className="py-20 px-4 bg-primary text-center"
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true }}
-        variants={fadeUp}
-      >
-        <div className="container mx-auto">
-          <h2 className="text-4xl font-bold text-primary-foreground mb-4">
-            ¿Listo para comenzar?
-          </h2>
-          <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Únete a miles de dueños de mascotas que ya confían en VetCard.
-          </p>
-          <motion.div 
-            whileHover={buttonHover} 
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          >
-          <Button size="lg" variant="secondary" asChild>
-            <Link href="/auth/register">Crear Cuenta Gratis</Link>
-          </Button>
-          </motion.div>
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="bg-indigo-600 rounded-3xl p-8 sm:p-16 text-center relative overflow-hidden shadow-2xl">
+            {/* Decorative circles */}
+            <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
+
+            <div className="relative z-10">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+                ¿Listo para mejorar la vida de tu mascota?
+              </h2>
+              <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+                Únete a la comunidad de dueños responsables que eligen VetHealth.
+              </p>
+              <Button size="lg" asChild className="h-14 px-8 text-lg bg-white text-indigo-600 hover:bg-indigo-50 border-none shadow-xl rounded-xl">
+                <Link href="/auth/register">
+                  Crear Cuenta Gratis <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* ---------- Footer ---------- */}
-      <footer className="bg-muted py-12 px-4">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          variants={fadeIn}
-          className="container mx-auto text-center"
-        >
-          <motion.div
-            whileHover={{ scale: 1.05, rotate: 2 }}
-            transition={{ type: "spring", stiffness: 300, damping: 15 }}
-            className="flex justify-center mb-4"
-          >
+      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12 px-4">
+        <div className="container mx-auto text-center">
+          <div className="flex justify-center mb-6">
             <Logo size="md" />
-          </motion.div>
-          <p className="text-muted-foreground mb-4">
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
             Cuidando a tus mascotas, un registro a la vez.
           </p>
-          <p className="text-sm text-muted-foreground/60">
-  © {new Date().getFullYear()} VetCard. Todos los derechos reservados.  
-  Desarrollado por{' '}
-  <a
-    href="https://www.linkedin.com/in/jose-maria-atonur-94949324b/"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-primary font-medium hover:underline hover:text-primary/80 transition-colors"
-  >
-    Jose Maria Atonur
-  </a>
-  .
-</p>
-
-        </motion.div>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">
+            Página Desarrollada por <a href="https://www.linkedin.com/in/jose-maria-atonur-94949324b" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Jose Maria Atonur</a>.
+          </p>
+          <p className="text-sm text-slate-400 dark:text-slate-600">
+            © {new Date().getFullYear()} VetHealth. Todos los derechos reservados.
+          </p>
+        </div>
       </footer>
+
+      {/* Botón flotante de mascota */}
+      <FloatingPetButton />
     </div>
   )
 }

@@ -1,11 +1,11 @@
-# Configuración de la Base de Datos - VetCard
+# Configuración de la Base de Datos - VetHealth
 
 ## Pasos para configurar la base de datos en Supabase
 
 ### 1. Acceder a Supabase Dashboard
 1. Ve a [https://supabase.com/dashboard](https://supabase.com/dashboard)
 2. Inicia sesión con tu cuenta
-3. Selecciona tu proyecto VetCard
+3. Selecciona tu proyecto VetHealth
 
 ### 2. Ejecutar el Script SQL
 

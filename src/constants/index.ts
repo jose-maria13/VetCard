@@ -90,7 +90,7 @@ export const PET_COLORS = [
 
 // Configuración de la aplicación
 export const APP_CONFIG = {
-  name: 'VetCard',
+  name: 'VetHealth',
   description: 'Carnet de Vacunación Digital para Mascotas',
   version: '1.0.0',
   maxFileSize: 5 * 1024 * 1024, // 5MB

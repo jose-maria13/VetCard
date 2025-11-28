@@ -1,8 +1,8 @@
-# 🐾 VetCard - Carnet de Vacunación Digital para Mascotas
+# 🐾 VetHealth - Carnet de Vacunación Digital para Mascotas
 
-![VetCard Logo](public/logo%20vet%20card.png)
+![VetHealth Logo](public/logo-vethealth.png)
 
-**VetCard** es una aplicación web moderna y completa para gestionar el carnet de vacunación digital de tus mascotas. Nunca más pierdas el control de la salud de tu mejor amigo.
+**VetHealth** es una aplicación web moderna y completa para gestionar el carnet de vacunación digital de tus mascotas. Nunca más pierdas el control de la salud de tu mejor amigo.
 
 ## ✨ Características Principales
 
@@ -54,19 +54,6 @@
    ```
    
    Edita `.env.local` y agrega tus credenciales de Supabase:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-aqui
-   ```
-
-4. **Configurar la base de datos**
-   - Ve a tu proyecto en Supabase Dashboard
-   - Ejecuta las migraciones SQL desde `supabase/migrations/`
-   - Orden: `001_initial_schema.sql`, luego `009_add_public_carousel_policy.sql`
-
-5. **Ejecutar en desarrollo**
-   ```bash
-   npm run dev
    ```
 
 6. **Abrir en el navegador**

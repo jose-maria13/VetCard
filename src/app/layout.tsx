@@ -10,10 +10,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VetCard - Carnet de Vacunación Digital",
+  title: "VetHealth - Carnet de Vacunación Digital",
   description: "Gestiona el carnet de vacunación digital de tus mascotas de forma fácil y segura",
   keywords: ["mascotas", "vacunas", "veterinario", "carnet digital", "perros", "gatos"],
-  authors: [{ name: "VetCard Team" }],
+  authors: [{ name: "VetHealth Team" }],
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
